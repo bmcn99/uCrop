@@ -617,6 +617,23 @@ public class UCropActivity extends AppCompatActivity {
             @Override
             public void onBitmapCropped(@NonNull Uri resultUri, int offsetX, int offsetY, int imageWidth, int imageHeight) {
                 setResultUri(resultUri, mGestureCropImageView.getTargetAspectRatio(), offsetX, offsetY, imageWidth, imageHeight);
+                //Maybe do our circular crop here, looks like it already saved the rect at this point?
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), resultUri);
+                Bitmap circleCroppedBitmap = getCroppedBitmap(bitmap);
+
+                String path = resultUri.uri.getPath();//Environment.getExternalStorageDirectory().toString();
+                OutputStream fOut = null;
+                File file = new File(new URI(path));//new File(path, "circleCropAttempt.png"); // the File to save , append increasing numeric counter to prevent files from getting overwritten.
+                fOut = new FileOutputStream(file);
+
+                // Bitmap pictureBitmap = getImageBitmap(myurl); // obtaining the Bitmap
+                circleCroppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, fOut); // saving the Bitmap to a file compressed as a JPEG with 85% compression rate
+                fOut.flush(); // Not really required
+                fOut.close(); // do not forget to close the stream
+
+                // MediaStore.Images.Media.insertImage(getContentResolver(),file.getAbsolutePath(),file.getName(),file.getName());
+
+                //Maybe do our circular crop here?
                 finish();
             }
 
@@ -626,6 +643,28 @@ public class UCropActivity extends AppCompatActivity {
                 finish();
             }
         });
+    }
+
+    protected Bitmap getCroppedBitmap(Bitmap bitmap) {
+        Bitmap output = Bitmap.createBitmap(bitmap.getWidth(),
+                bitmap.getHeight(), Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+    
+        final int color = 0xff424242;
+        final Paint paint = new Paint();
+        final Rect rect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
+    
+        paint.setAntiAlias(true);
+        canvas.drawARGB(0, 0, 0, 0);
+        paint.setColor(color);
+        // canvas.drawRoundRect(rectF, roundPx, roundPx, paint);
+        canvas.drawCircle(bitmap.getWidth() / 2, bitmap.getHeight() / 2,
+                bitmap.getWidth() / 2, paint);
+        paint.setXfermode(new PorterDuffXfermode(Mode.SRC_IN));
+        canvas.drawBitmap(bitmap, rect, rect, paint);
+        //Bitmap _bmp = Bitmap.createScaledBitmap(output, 60, 60, false);
+        //return _bmp;
+        return output;
     }
 
     protected void setResultUri(Uri uri, float resultAspectRatio, int offsetX, int offsetY, int imageWidth, int imageHeight) {
